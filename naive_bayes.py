@@ -1,4 +1,6 @@
 import numpy as np
+import time
+import matplotlib.pyplot as plt
 
 def data_preprocess(train_img="train-images-idx3-ubyte", train_label="train-labels-idx1-ubyte", test_img="t10k-images-idx3-ubyte", test_label="t10k-labels-idx1-ubyte"):
     with open(train_img, 'rb') as f:
@@ -95,27 +97,44 @@ def predict(feature_vec_test, conditional_probability, prior):
         
     return pred_class
 
-import time
-# Load data
-training_images_vecs, training_labels, test_images_vecs, test_labels = data_preprocess()
+def generate(conditional_probability, class_i):
+    (num_classes, num_features) = conditional_probability.shape
+    feature_vec = np.zeros((num_features,))
+    for i in range(num_features):
+        feature_vec[i] = np.random.rand() < conditional_probability[class_i, i] 
+    
+    return feature_vec
 
-# Learning
-print("Learning")
-labels = training_labels
-images = training_images_vecs
-begin = time.time()
-conditional_probability, prior = joint_likelihood(images, labels)
-print("time cost for learning:", time.time()-begin)
 
-# Inference
-begin = time.time()
-print("Inference")
-pred_labels = []
-for i in range(10000):
-    if i%500 == 0:
-        print(i)
-    pred_labels.append(predict(test_images_vecs[i,:], conditional_probability, prior ))
-print("time cost for inference:", time.time()-begin)
+if __name__ == '__main__':
+    # Load data
+    training_images_vecs, training_labels, test_images_vecs, test_labels = data_preprocess()
 
-# Acc: 0.84330000000000005
-print("Test accuracy:", np.mean(np.array(pred_labels)==test_labels))
+    # Learning
+    print("Learning")
+    labels = training_labels
+    images = training_images_vecs
+    begin = time.time()
+    conditional_probability, prior = joint_likelihood(images, labels)
+    print("time cost for learning:", time.time()-begin)
+
+    # Inference
+    begin = time.time()
+    print("Inference")
+    pred_labels = []
+    for i in range(10000):
+        if i%500 == 0:
+            print(i)
+        pred_labels.append(predict(test_images_vecs[i,:], conditional_probability, prior ))
+    print("time cost for inference:", time.time()-begin)
+
+    # Acc: 0.8433
+    print("Test accuracy:", np.mean(np.array(pred_labels)==test_labels))
+
+    # Sampling
+    # Generate image for given class y_i from learned conditional probability p(x_j|y_i)
+    given_class = 0
+    feature_vec = generate(conditional_probability, given_class)
+    img_gen = feature_vec.reshape(28,28)
+    plt.imshow(img_gen, cmap='gray')
+    plt.show()
