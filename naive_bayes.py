@@ -39,7 +39,7 @@ def data_preprocess(train_img="train-images-idx3-ubyte", train_label="train-labe
     training_images_vecs = 1 * (training_images_vecs>128)
     test_images_vecs = 1 * (test_images_vecs>128)
     
-    return training_images_vecs, test_images_vecs, training_images_vecs, test_images_vecs
+    return training_images_vecs, training_labels, test_images_vecs, test_labels
 
 def joint_likelihood(images, labels):
     num_classes = len(np.unique(labels))
@@ -81,9 +81,10 @@ def predict(feature_vec_test, conditional_probability, prior):
 
 import time
 # Load data
-training_images_vecs, training_labels, training_images_vecs, test_labels = data_preprocess()
+training_images_vecs, training_labels, test_images_vecs, test_labels = data_preprocess()
 
 # Learning
+print("Learning")
 labels = training_labels
 images = training_images_vecs
 begin = time.time()
@@ -92,7 +93,7 @@ print("time cost for learning:", time.time()-begin)
 
 # Inference
 begin = time.time()
-
+print("Inference")
 pred_labels = []
 for i in range(10000):
     if i%500 == 0:
@@ -102,3 +103,4 @@ print("time cost for inference:", time.time()-begin)
 
 # Acc: 0.84330000000000005
 print("Test accuracy:", np.mean(np.array(pred_labels)==test_labels))
+
