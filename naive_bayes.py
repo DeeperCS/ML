@@ -45,16 +45,32 @@ def joint_likelihood(images, labels):
     num_classes = len(np.unique(labels))
     (num_samples, num_features) = images.shape
     conditional_probability = np.zeros((num_classes, num_features))
+    count = np.zeros((num_classes,))
     prior = np.zeros((num_classes,))
+    # Counting
     for i in range(num_samples):
         label_temp = labels[i]
-        prior[label_temp] += 1
+        count[label_temp] += 1
         for j in range(num_features):
             conditional_probability[label_temp][j] += images[i, j]
+            
     # Divide by the number of samples in that class
+    # Avoid estimating a zero probability:
+    # incorporating uniform Dirichlet prior to likelihood estimation
+    # (Assuming there are some observed samples evenly spread over possible values of each feature, [0,1] in this case)
+    # e.g., observed 2 samples, one for feature 1, and another one for feature 0
+    # p(x_j|y_i) = (#feature_j + 1) / (#y_i + 2);    x_j = 0|1
     for i in range(num_classes):
-        conditional_probability[i, :] = (conditional_probability[i, :]+1) / (prior[i]+2)  # lapace smoothing
-        
+        # maximum a posterior estimation or lapace smoothing
+        conditional_probability[i, :] = (conditional_probability[i, :]+1) / (count[i]+2)  
+    
+    # incorporating uniform Dirichlet prior for estimating prior 
+    # Assuming there are some observed samples evenly spread over possible values of each class
+    # e.g. observed k samples (k is the number of classes), one sample for each category
+    # p(y_i) = (#y_i+1) / (#all + k)
+    for i in range(num_classes):
+        prior[i] = (count[i]+1) / (num_samples+num_classes)
+
     return conditional_probability, prior
 
 def predict(feature_vec_test, conditional_probability, prior):
@@ -65,8 +81,8 @@ def predict(feature_vec_test, conditional_probability, prior):
         prob = np.log(prior[i])
         for j in range(num_features):
             feature_temp = feature_vec_test[j]
-            # To avoid the result shrinking to nan or inf
-            # maximize the log function (sum) instead of original posterior probility (multiplication)
+            # Avoid numerical issues (nan or inf) caused by multiplying many small float numbers
+            # maximize the log function (sum) instead of original posterior probability (multiplication)
             # see http://www-inst.eecs.berkeley.edu/~cs70/sp15/notes/n21.pdf
             if feature_temp==1:
                 prob_feat = feature_temp * np.log(conditional_probability[i, j])
@@ -103,4 +119,3 @@ print("time cost for inference:", time.time()-begin)
 
 # Acc: 0.84330000000000005
 print("Test accuracy:", np.mean(np.array(pred_labels)==test_labels))
-
